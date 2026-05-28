@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+const API_URL = "https://v4desk-api.onrender.com";
 function App() {
   const [employeeId, setEmployeeId] = useState("EMP-1001");
   const [password, setPassword] = useState("Test1234");
@@ -15,19 +15,19 @@ function App() {
   const [totalHours, setTotalHours] = useState("40");
 
   const fetchEmployees = async () => {
-    const res = await fetch("http://localhost:5000/api/admin/employees");
+    const res = await fetch(`${API_URL}/api/admin/employees`);
     const data = await res.json();
     setEmployees(data.employees || []);
   };
 
   const fetchClockRecords = async () => {
-    const res = await fetch("http://localhost:5000/api/admin/clock-records");
+    const res = await fetch(`${API_URL}/api/admin/clock-records`);
     const data = await res.json();
     setClockRecords(data.records || []);
   };
 
   const fetchTimesheets = async () => {
-    const res = await fetch("http://localhost:5000/api/admin/timesheets");
+    const res = await fetch(`${API_URL}/api/admin/timesheets`);
     const data = await res.json();
     setTimesheets(data.timesheets || []);
   };
@@ -36,7 +36,7 @@ function App() {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/employee-login", {
+      const res = await fetch(`${API_URL}/api/auth/employee-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: employeeId, password }),
@@ -62,7 +62,7 @@ function App() {
   };
 
   const handleClockIn = async () => {
-    const res = await fetch("http://localhost:5000/api/clock/clock-in", {
+    const res = await fetch(`${API_URL}/api/clock/clock-in`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ employee_id: employee.employee_id }),
@@ -74,7 +74,7 @@ function App() {
   };
 
   const handleClockOut = async () => {
-    const res = await fetch("http://localhost:5000/api/clock/clock-out", {
+    const res = await fetch(`${API_URL}/api/clock/clock-out`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ employee_id: employee.employee_id }),
@@ -86,7 +86,7 @@ function App() {
   };
 
   const handleSubmitTimesheet = async () => {
-    const res = await fetch("http://localhost:5000/api/timesheets/submit", {
+    const res = await fetch(`${API_URL}/api/timesheets/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -104,7 +104,7 @@ function App() {
 
   const handleApproveTimesheet = async (id) => {
     const res = await fetch(
-      `http://localhost:5000/api/admin/timesheets/${id}/approve`,
+      `${API_URL}/api/admin/timesheets/${id}/approve`,
       { method: "PUT" }
     );
 
@@ -115,7 +115,7 @@ function App() {
 
   const handleRejectTimesheet = async (id) => {
     const res = await fetch(
-      `http://localhost:5000/api/admin/timesheets/${id}/reject`,
+      `${API_URL}/api/admin/timesheets/${id}/reject`,
       { method: "PUT" }
     );
 
