@@ -63,8 +63,9 @@ router.post("/employee-login", async (req, res) => {
     );
 
     res.json({
-      message: "Login successful",
+      message: "Employee login successful",
       token,
+      userType: "employee",
       employee: {
         id: employee.id,
         employee_id: employee.employee_id,
@@ -74,7 +75,58 @@ router.post("/employee-login", async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Login failed",
+      message: "Employee login failed",
+      error: error.message,
+    });
+  }
+});
+
+router.post("/admin-login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const result = await pool.query(
+      "SELECT * FROM admins WHERE email = $1",
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        message: "Invalid admin email or password",
+      });
+    }
+
+    const admin = result.rows[0];
+
+    if (password !== admin.password) {
+      return res.status(401).json({
+        message: "Invalid admin email or password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: admin.id,
+        email: admin.email,
+        role: "admin",
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Admin login successful",
+      token,
+      userType: "admin",
+      admin: {
+        id: admin.id,
+        admin_name: admin.admin_name,
+        email: admin.email,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Admin login failed",
       error: error.message,
     });
   }
