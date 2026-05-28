@@ -6,7 +6,7 @@ const router = express.Router();
 router.get("/employees", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, employee_id, full_name, email, role, created_at FROM employees ORDER BY id DESC"
+      "SELECT id, employee_id, full_name, email, role, status, created_at FROM employees ORDER BY id DESC"
     );
 
     res.json({ employees: result.rows });
@@ -85,6 +85,27 @@ router.put("/timesheets/:id/reject", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Rejection failed",
+      error: error.message,
+    });
+  }
+});
+
+router.put("/employees/:id/deactivate", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      "UPDATE employees SET status = 'inactive' WHERE id = $1 RETURNING id, employee_id, full_name, email, role, status",
+      [id]
+    );
+
+    res.json({
+      message: "Employee deactivated successfully",
+      employee: result.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to deactivate employee",
       error: error.message,
     });
   }
