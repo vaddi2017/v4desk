@@ -122,7 +122,6 @@ function App() {
     });
 
     const data = await res.json();
-
     setMessage(data.message);
 
     if (res.ok) {
@@ -132,6 +131,16 @@ function App() {
       setNewPassword("Test1234");
       fetchEmployees();
     }
+  };
+
+  const handleDeactivateEmployee = async (id) => {
+    const res = await fetch(`${API_URL}/api/admin/employees/${id}/deactivate`, {
+      method: "PUT",
+    });
+
+    const data = await res.json();
+    setMessage(data.message);
+    fetchEmployees();
   };
 
   const handleClockIn = async () => {
@@ -582,6 +591,72 @@ function App() {
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
             <h2 className="text-3xl font-bold text-slate-900">
+              Employees
+            </h2>
+
+            <div className="mt-8 overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b bg-slate-50">
+                    <th className="p-4 text-left">Employee ID</th>
+                    <th className="p-4 text-left">Full Name</th>
+                    <th className="p-4 text-left">Email</th>
+                    <th className="p-4 text-left">Role</th>
+                    <th className="p-4 text-left">Status</th>
+                    <th className="p-4 text-left">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {employees.map((emp) => (
+                    <tr key={emp.id} className="border-b">
+                      <td className="p-4">{emp.employee_id}</td>
+                      <td className="p-4">{emp.full_name}</td>
+                      <td className="p-4">{emp.email}</td>
+                      <td className="p-4">{emp.role}</td>
+                      <td className="p-4">
+                        <span
+                          className={`rounded-xl px-3 py-1 text-white ${
+                            emp.status === "inactive"
+                              ? "bg-red-600"
+                              : "bg-green-600"
+                          }`}
+                        >
+                          {emp.status || "active"}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => handleDeactivateEmployee(emp.id)}
+                          disabled={emp.status === "inactive"}
+                          className={`rounded-xl px-4 py-2 text-white ${
+                            emp.status === "inactive"
+                              ? "bg-slate-400"
+                              : "bg-red-600"
+                          }`}
+                        >
+                          {emp.status === "inactive"
+                            ? "Inactive"
+                            : "Deactivate"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {employees.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="p-4 text-center text-slate-500">
+                        No employees found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
+            <h2 className="text-3xl font-bold text-slate-900">
               Timesheet Management
             </h2>
 
@@ -645,44 +720,6 @@ function App() {
                     <tr>
                       <td colSpan="6" className="p-4 text-center text-slate-500">
                         No timesheets found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Employees
-            </h2>
-
-            <div className="mt-8 overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b bg-slate-50">
-                    <th className="p-4 text-left">Employee ID</th>
-                    <th className="p-4 text-left">Full Name</th>
-                    <th className="p-4 text-left">Email</th>
-                    <th className="p-4 text-left">Role</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {employees.map((emp) => (
-                    <tr key={emp.id} className="border-b">
-                      <td className="p-4">{emp.employee_id}</td>
-                      <td className="p-4">{emp.full_name}</td>
-                      <td className="p-4">{emp.email}</td>
-                      <td className="p-4">{emp.role}</td>
-                    </tr>
-                  ))}
-
-                  {employees.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="p-4 text-center text-slate-500">
-                        No employees found.
                       </td>
                     </tr>
                   )}
