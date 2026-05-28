@@ -23,6 +23,11 @@ function App() {
   const [weekEnd, setWeekEnd] = useState("2026-05-31");
   const [totalHours, setTotalHours] = useState("40");
 
+  const [newEmployeeId, setNewEmployeeId] = useState("EMP-1002");
+  const [newFullName, setNewFullName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("Test1234");
+
   const fetchEmployees = async () => {
     const res = await fetch(`${API_URL}/api/admin/employees`);
     const data = await res.json();
@@ -101,6 +106,31 @@ function App() {
       loadAdminData();
     } catch {
       setMessage("Backend connection failed");
+    }
+  };
+
+  const handleCreateEmployee = async () => {
+    const res = await fetch(`${API_URL}/api/auth/register-employee`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employee_id: newEmployeeId,
+        full_name: newFullName,
+        email: newEmail,
+        password: newPassword,
+      }),
+    });
+
+    const data = await res.json();
+
+    setMessage(data.message);
+
+    if (res.ok) {
+      setNewEmployeeId("");
+      setNewFullName("");
+      setNewEmail("");
+      setNewPassword("Test1234");
+      fetchEmployees();
     }
   };
 
@@ -497,6 +527,57 @@ function App() {
                 {message}
               </div>
             )}
+          </div>
+
+          <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
+            <h2 className="text-3xl font-bold text-slate-900">
+              Add Employee
+            </h2>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+              <div>
+                <label className="text-sm font-medium">Employee ID</label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={newEmployeeId}
+                  onChange={(e) => setNewEmployeeId(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Full Name</label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={newFullName}
+                  onChange={(e) => setNewFullName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Password</label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleCreateEmployee}
+              className="mt-6 rounded-2xl bg-green-600 px-6 py-3 font-semibold text-white"
+            >
+              Create Employee
+            </button>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
