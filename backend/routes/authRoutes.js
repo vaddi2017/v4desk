@@ -12,7 +12,7 @@ router.post("/register-employee", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      "INSERT INTO employees (employee_id, full_name, email, password) VALUES ($1, $2, $3, $4) RETURNING id, employee_id, full_name, email",
+      "INSERT INTO employees (employee_id, full_name, email, password, status) VALUES ($1, $2, $3, $4, 'active') RETURNING id, employee_id, full_name, email, status",
       [employee_id, full_name, email, hashedPassword]
     );
 
@@ -44,6 +44,13 @@ router.post("/employee-login", async (req, res) => {
     }
 
     const employee = result.rows[0];
+
+    if (employee.status === "inactive") {
+      return res.status(403).json({
+        message: "Your employee account is inactive. Please contact admin.",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, employee.password);
 
     if (!isMatch) {
@@ -71,6 +78,7 @@ router.post("/employee-login", async (req, res) => {
         employee_id: employee.employee_id,
         full_name: employee.full_name,
         email: employee.email,
+        status: employee.status,
       },
     });
   } catch (error) {
@@ -85,10 +93,9 @@ router.post("/admin-login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const result = await pool.query(
-      "SELECT * FROM admins WHERE email = $1",
-      [email]
-    );
+    const result = await pool.query("SELECT * FROM admins WHERE email = $1", [
+      email,
+    ]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({
