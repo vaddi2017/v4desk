@@ -1,10 +1,19 @@
 import { useState } from "react";
+
 const API_URL = "https://v4desk-api.onrender.com";
+
 function App() {
+  const [loginType, setLoginType] = useState("employee");
+
   const [employeeId, setEmployeeId] = useState("EMP-1001");
   const [password, setPassword] = useState("Test1234");
-  const [message, setMessage] = useState("");
   const [employee, setEmployee] = useState(null);
+
+  const [adminEmail, setAdminEmail] = useState("admin@v4desk.com");
+  const [adminPassword, setAdminPassword] = useState("Admin1234");
+  const [admin, setAdmin] = useState(null);
+
+  const [message, setMessage] = useState("");
 
   const [employees, setEmployees] = useState([]);
   const [clockRecords, setClockRecords] = useState([]);
@@ -32,7 +41,13 @@ function App() {
     setTimesheets(data.timesheets || []);
   };
 
-  const handleLogin = async (e) => {
+  const loadAdminData = () => {
+    fetchEmployees();
+    fetchClockRecords();
+    fetchTimesheets();
+  };
+
+  const handleEmployeeLogin = async (e) => {
     e.preventDefault();
 
     try {
@@ -45,17 +60,45 @@ function App() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage(data.message || "Login failed");
+        setMessage(data.message || "Employee login failed");
         return;
       }
 
       localStorage.setItem("v4desk_token", data.token);
       setEmployee(data.employee);
-      setMessage("Login successful");
+      setAdmin(null);
+      setMessage("Employee login successful");
 
-      fetchEmployees();
       fetchClockRecords();
       fetchTimesheets();
+    } catch {
+      setMessage("Backend connection failed");
+    }
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/admin-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.message || "Admin login failed");
+        return;
+      }
+
+      localStorage.setItem("v4desk_token", data.token);
+      setAdmin(data.admin);
+      setEmployee(null);
+      setMessage("Admin login successful");
+
+      loadAdminData();
     } catch {
       setMessage("Backend connection failed");
     }
@@ -103,10 +146,9 @@ function App() {
   };
 
   const handleApproveTimesheet = async (id) => {
-    const res = await fetch(
-      `${API_URL}/api/admin/timesheets/${id}/approve`,
-      { method: "PUT" }
-    );
+    const res = await fetch(`${API_URL}/api/admin/timesheets/${id}/approve`, {
+      method: "PUT",
+    });
 
     const data = await res.json();
     setMessage(data.message);
@@ -114,10 +156,9 @@ function App() {
   };
 
   const handleRejectTimesheet = async (id) => {
-    const res = await fetch(
-      `${API_URL}/api/admin/timesheets/${id}/reject`,
-      { method: "PUT" }
-    );
+    const res = await fetch(`${API_URL}/api/admin/timesheets/${id}/reject`, {
+      method: "PUT",
+    });
 
     const data = await res.json();
     setMessage(data.message);
@@ -127,47 +168,119 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem("v4desk_token");
     setEmployee(null);
+    setAdmin(null);
     setMessage("");
     setEmployees([]);
     setClockRecords([]);
     setTimesheets([]);
   };
 
+  const filteredEmployeeClockRecords = employee
+    ? clockRecords.filter((record) => record.employee_id === employee.employee_id)
+    : [];
+
+  const filteredEmployeeTimesheets = employee
+    ? timesheets.filter((sheet) => sheet.employee_id === employee.employee_id)
+    : [];
+
   return (
     <div className="min-h-screen bg-slate-100 p-8">
-      {!employee ? (
+      {!employee && !admin ? (
         <div className="mx-auto mt-20 w-full max-w-md rounded-3xl bg-white p-8 shadow-lg">
           <h1 className="text-4xl font-bold text-slate-900">V4Desk</h1>
           <p className="mt-2 text-slate-600">Employee Timesheet Platform</p>
 
-          <form onSubmit={handleLogin} className="mt-8 space-y-5">
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                Employee ID
-              </label>
-              <input
-                className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                Password
-              </label>
-              <input
-                type="password"
-                className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
-              Login
+          <div className="mt-8 grid grid-cols-2 gap-3 rounded-2xl bg-slate-100 p-2">
+            <button
+              type="button"
+              onClick={() => {
+                setLoginType("employee");
+                setMessage("");
+              }}
+              className={`rounded-xl p-3 font-semibold ${
+                loginType === "employee"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-700"
+              }`}
+            >
+              Employee
             </button>
-          </form>
+
+            <button
+              type="button"
+              onClick={() => {
+                setLoginType("admin");
+                setMessage("");
+              }}
+              className={`rounded-xl p-3 font-semibold ${
+                loginType === "admin"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-700"
+              }`}
+            >
+              Admin
+            </button>
+          </div>
+
+          {loginType === "employee" ? (
+            <form onSubmit={handleEmployeeLogin} className="mt-8 space-y-5">
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Employee ID
+                </label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
+                Employee Login
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleAdminLogin} className="mt-8 space-y-5">
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Admin Email
+                </label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                />
+              </div>
+
+              <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
+                Admin Login
+              </button>
+            </form>
+          )}
 
           {message && (
             <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm">
@@ -175,15 +288,16 @@ function App() {
             </div>
           )}
         </div>
-      ) : (
+      ) : employee ? (
         <div>
           <div className="rounded-3xl bg-white p-8 shadow-lg">
             <h1 className="text-4xl font-bold text-slate-900">
-              Welcome {employee.full_name}
+              Employee Dashboard
             </h1>
             <p className="mt-2 text-slate-600">
-              Employee ID: {employee.employee_id}
+              Welcome {employee.full_name}
             </p>
+            <p className="text-slate-600">Employee ID: {employee.employee_id}</p>
             <p className="text-slate-600">Email: {employee.email}</p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -262,18 +376,133 @@ function App() {
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-slate-900">
-                Timesheet Management
-              </h2>
+            <h2 className="text-3xl font-bold text-slate-900">
+              My Timesheets
+            </h2>
+
+            <div className="mt-8 overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b bg-slate-50">
+                    <th className="p-4 text-left">Week Start</th>
+                    <th className="p-4 text-left">Week End</th>
+                    <th className="p-4 text-left">Hours</th>
+                    <th className="p-4 text-left">Status</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredEmployeeTimesheets.map((sheet) => (
+                    <tr key={sheet.id} className="border-b">
+                      <td className="p-4">
+                        {new Date(sheet.week_start).toLocaleDateString()}
+                      </td>
+                      <td className="p-4">
+                        {new Date(sheet.week_end).toLocaleDateString()}
+                      </td>
+                      <td className="p-4">{sheet.total_hours}</td>
+                      <td className="p-4">{sheet.status}</td>
+                    </tr>
+                  ))}
+
+                  {filteredEmployeeTimesheets.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="p-4 text-center text-slate-500">
+                        No timesheets found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
+            <h2 className="text-3xl font-bold text-slate-900">
+              My Clock Records
+            </h2>
+
+            <div className="mt-8 overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b bg-slate-50">
+                    <th className="p-4 text-left">Clock In</th>
+                    <th className="p-4 text-left">Clock Out</th>
+                    <th className="p-4 text-left">Total Hours</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredEmployeeClockRecords.map((record) => (
+                    <tr key={record.id} className="border-b">
+                      <td className="p-4">
+                        {record.clock_in
+                          ? new Date(record.clock_in).toLocaleString()
+                          : "-"}
+                      </td>
+                      <td className="p-4">
+                        {record.clock_out
+                          ? new Date(record.clock_out).toLocaleString()
+                          : "Still Clocked In"}
+                      </td>
+                      <td className="p-4">
+                        {record.total_hours
+                          ? Number(record.total_hours).toFixed(2)
+                          : "-"}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {filteredEmployeeClockRecords.length === 0 && (
+                    <tr>
+                      <td colSpan="3" className="p-4 text-center text-slate-500">
+                        No clock records found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="rounded-3xl bg-white p-8 shadow-lg">
+            <h1 className="text-4xl font-bold text-slate-900">
+              Admin Dashboard
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Welcome {admin.admin_name}
+            </p>
+            <p className="text-slate-600">Email: {admin.email}</p>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              <button
+                onClick={loadAdminData}
+                className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white"
+              >
+                Refresh Dashboard
+              </button>
 
               <button
-                onClick={fetchTimesheets}
-                className="rounded-xl bg-slate-900 px-5 py-2 text-white"
+                onClick={handleLogout}
+                className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white"
               >
-                Refresh Timesheets
+                Logout
               </button>
             </div>
+
+            {message && (
+              <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-sm">
+                {message}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
+            <h2 className="text-3xl font-bold text-slate-900">
+              Timesheet Management
+            </h2>
 
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
@@ -344,18 +573,9 @@ function App() {
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-slate-900">
-                Employee Dashboard
-              </h2>
-
-              <button
-                onClick={fetchEmployees}
-                className="rounded-xl bg-slate-900 px-5 py-2 text-white"
-              >
-                Refresh
-              </button>
-            </div>
+            <h2 className="text-3xl font-bold text-slate-900">
+              Employees
+            </h2>
 
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
@@ -377,24 +597,23 @@ function App() {
                       <td className="p-4">{emp.role}</td>
                     </tr>
                   ))}
+
+                  {employees.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="p-4 text-center text-slate-500">
+                        No employees found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-slate-900">
-                Clock Records
-              </h2>
-
-              <button
-                onClick={fetchClockRecords}
-                className="rounded-xl bg-slate-900 px-5 py-2 text-white"
-              >
-                Refresh Records
-              </button>
-            </div>
+            <h2 className="text-3xl font-bold text-slate-900">
+              All Clock Records
+            </h2>
 
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
@@ -428,6 +647,14 @@ function App() {
                       </td>
                     </tr>
                   ))}
+
+                  {clockRecords.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="p-4 text-center text-slate-500">
+                        No clock records found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
