@@ -28,6 +28,8 @@ function App() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("Test1234");
 
+  const [resetPasswords, setResetPasswords] = useState({});
+
   const fetchEmployees = async () => {
     const res = await fetch(`${API_URL}/api/admin/employees`);
     const data = await res.json();
@@ -153,6 +155,28 @@ function App() {
     fetchEmployees();
   };
 
+  const handleResetPassword = async (id) => {
+    const newPass = resetPasswords[id];
+
+    if (!newPass || newPass.length < 6) {
+      setMessage("Password must be at least 6 characters");
+      return;
+    }
+
+    const res = await fetch(`${API_URL}/api/admin/employees/${id}/reset-password`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPassword: newPass }),
+    });
+
+    const data = await res.json();
+    setMessage(data.message);
+
+    if (res.ok) {
+      setResetPasswords({ ...resetPasswords, [id]: "" });
+    }
+  };
+
   const handleClockIn = async () => {
     const res = await fetch(`${API_URL}/api/clock/clock-in`, {
       method: "POST",
@@ -240,191 +264,63 @@ function App() {
           <p className="mt-2 text-slate-600">Employee Timesheet Platform</p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 rounded-2xl bg-slate-100 p-2">
-            <button
-              type="button"
-              onClick={() => {
-                setLoginType("employee");
-                setMessage("");
-              }}
-              className={`rounded-xl p-3 font-semibold ${
-                loginType === "employee"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700"
-              }`}
-            >
+            <button type="button" onClick={() => setLoginType("employee")} className={`rounded-xl p-3 font-semibold ${loginType === "employee" ? "bg-slate-900 text-white" : "text-slate-700"}`}>
               Employee
             </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setLoginType("admin");
-                setMessage("");
-              }}
-              className={`rounded-xl p-3 font-semibold ${
-                loginType === "admin"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-700"
-              }`}
-            >
+            <button type="button" onClick={() => setLoginType("admin")} className={`rounded-xl p-3 font-semibold ${loginType === "admin" ? "bg-slate-900 text-white" : "text-slate-700"}`}>
               Admin
             </button>
           </div>
 
           {loginType === "employee" ? (
             <form onSubmit={handleEmployeeLogin} className="mt-8 space-y-5">
-              <div>
-                <label className="text-sm font-medium text-slate-700">
-                  Employee ID
-                </label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-
-              <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
-                Employee Login
-              </button>
+              <input className="w-full rounded-xl border border-slate-300 p-3" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} />
+              <input type="password" className="w-full rounded-xl border border-slate-300 p-3" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">Employee Login</button>
             </form>
           ) : (
             <form onSubmit={handleAdminLogin} className="mt-8 space-y-5">
-              <div>
-                <label className="text-sm font-medium text-slate-700">
-                  Admin Email
-                </label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                />
-              </div>
-
-              <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
-                Admin Login
-              </button>
+              <input className="w-full rounded-xl border border-slate-300 p-3" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+              <input type="password" className="w-full rounded-xl border border-slate-300 p-3" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
+              <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">Admin Login</button>
             </form>
           )}
 
-          {message && (
-            <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm">
-              {message}
-            </div>
-          )}
+          {message && <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm">{message}</div>}
         </div>
       ) : employee ? (
         <div>
           <div className="rounded-3xl bg-white p-8 shadow-lg">
-            <h1 className="text-4xl font-bold text-slate-900">
-              Employee Dashboard
-            </h1>
+            <h1 className="text-4xl font-bold text-slate-900">Employee Dashboard</h1>
             <p className="mt-2 text-slate-600">Welcome {employee.full_name}</p>
             <p className="text-slate-600">Employee ID: {employee.employee_id}</p>
             <p className="text-slate-600">Email: {employee.email}</p>
 
             <div className="mt-8 flex flex-wrap gap-4">
-              <button
-                onClick={handleClockIn}
-                className="rounded-2xl bg-green-600 px-6 py-3 font-semibold text-white"
-              >
-                Clock In
-              </button>
-
-              <button
-                onClick={handleClockOut}
-                className="rounded-2xl bg-red-600 px-6 py-3 font-semibold text-white"
-              >
-                Clock Out
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white"
-              >
-                Logout
-              </button>
+              <button onClick={handleClockIn} className="rounded-2xl bg-green-600 px-6 py-3 font-semibold text-white">Clock In</button>
+              <button onClick={handleClockOut} className="rounded-2xl bg-red-600 px-6 py-3 font-semibold text-white">Clock Out</button>
+              <button onClick={handleLogout} className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white">Logout</button>
             </div>
 
-            {message && (
-              <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-sm">
-                {message}
-              </div>
-            )}
+            {message && <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-sm">{message}</div>}
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Submit Weekly Timesheet
-            </h2>
+            <h2 className="text-3xl font-bold text-slate-900">Submit Weekly Timesheet</h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium">Week Start</label>
-                <input
-                  type="date"
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={weekStart}
-                  onChange={(e) => setWeekStart(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Week End</label>
-                <input
-                  type="date"
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={weekEnd}
-                  onChange={(e) => setWeekEnd(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Total Hours</label>
-                <input
-                  type="number"
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={totalHours}
-                  onChange={(e) => setTotalHours(e.target.value)}
-                />
-              </div>
+              <input type="date" className="rounded-xl border border-slate-300 p-3" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
+              <input type="date" className="rounded-xl border border-slate-300 p-3" value={weekEnd} onChange={(e) => setWeekEnd(e.target.value)} />
+              <input type="number" className="rounded-xl border border-slate-300 p-3" value={totalHours} onChange={(e) => setTotalHours(e.target.value)} />
             </div>
 
-            <button
-              onClick={handleSubmitTimesheet}
-              className="mt-6 rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white"
-            >
+            <button onClick={handleSubmitTimesheet} className="mt-6 rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white">
               Submit Timesheet
             </button>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
             <h2 className="text-3xl font-bold text-slate-900">My Timesheets</h2>
-
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -435,38 +331,22 @@ function App() {
                     <th className="p-4 text-left">Status</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredEmployeeTimesheets.map((sheet) => (
                     <tr key={sheet.id} className="border-b">
-                      <td className="p-4">
-                        {new Date(sheet.week_start).toLocaleDateString()}
-                      </td>
-                      <td className="p-4">
-                        {new Date(sheet.week_end).toLocaleDateString()}
-                      </td>
+                      <td className="p-4">{new Date(sheet.week_start).toLocaleDateString()}</td>
+                      <td className="p-4">{new Date(sheet.week_end).toLocaleDateString()}</td>
                       <td className="p-4">{sheet.total_hours}</td>
                       <td className="p-4">{sheet.status}</td>
                     </tr>
                   ))}
-
-                  {filteredEmployeeTimesheets.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="p-4 text-center text-slate-500">
-                        No timesheets found.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              My Clock Records
-            </h2>
-
+            <h2 className="text-3xl font-bold text-slate-900">My Clock Records</h2>
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -476,35 +356,14 @@ function App() {
                     <th className="p-4 text-left">Total Hours</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredEmployeeClockRecords.map((record) => (
                     <tr key={record.id} className="border-b">
-                      <td className="p-4">
-                        {record.clock_in
-                          ? new Date(record.clock_in).toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="p-4">
-                        {record.clock_out
-                          ? new Date(record.clock_out).toLocaleString()
-                          : "Still Clocked In"}
-                      </td>
-                      <td className="p-4">
-                        {record.total_hours
-                          ? Number(record.total_hours).toFixed(2)
-                          : "-"}
-                      </td>
+                      <td className="p-4">{record.clock_in ? new Date(record.clock_in).toLocaleString() : "-"}</td>
+                      <td className="p-4">{record.clock_out ? new Date(record.clock_out).toLocaleString() : "Still Clocked In"}</td>
+                      <td className="p-4">{record.total_hours ? Number(record.total_hours).toFixed(2) : "-"}</td>
                     </tr>
                   ))}
-
-                  {filteredEmployeeClockRecords.length === 0 && (
-                    <tr>
-                      <td colSpan="3" className="p-4 text-center text-slate-500">
-                        No clock records found.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
@@ -513,80 +372,29 @@ function App() {
       ) : (
         <div>
           <div className="rounded-3xl bg-white p-8 shadow-lg">
-            <h1 className="text-4xl font-bold text-slate-900">
-              Admin Dashboard
-            </h1>
+            <h1 className="text-4xl font-bold text-slate-900">Admin Dashboard</h1>
             <p className="mt-2 text-slate-600">Welcome {admin.admin_name}</p>
             <p className="text-slate-600">Email: {admin.email}</p>
 
             <div className="mt-8 flex flex-wrap gap-4">
-              <button
-                onClick={loadAdminData}
-                className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white"
-              >
-                Refresh Dashboard
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white"
-              >
-                Logout
-              </button>
+              <button onClick={loadAdminData} className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white">Refresh Dashboard</button>
+              <button onClick={handleLogout} className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white">Logout</button>
             </div>
 
-            {message && (
-              <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-sm">
-                {message}
-              </div>
-            )}
+            {message && <div className="mt-6 rounded-2xl bg-slate-100 p-4 text-sm">{message}</div>}
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
             <h2 className="text-3xl font-bold text-slate-900">Add Employee</h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
-              <div>
-                <label className="text-sm font-medium">Employee ID</label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={newEmployeeId}
-                  onChange={(e) => setNewEmployeeId(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Full Name</label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={newFullName}
-                  onChange={(e) => setNewFullName(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Email</label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Password</label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-              </div>
+              <input className="rounded-xl border border-slate-300 p-3" value={newEmployeeId} onChange={(e) => setNewEmployeeId(e.target.value)} placeholder="Employee ID" />
+              <input className="rounded-xl border border-slate-300 p-3" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="Full Name" />
+              <input className="rounded-xl border border-slate-300 p-3" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Email" />
+              <input className="rounded-xl border border-slate-300 p-3" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Password" />
             </div>
 
-            <button
-              onClick={handleCreateEmployee}
-              className="mt-6 rounded-2xl bg-green-600 px-6 py-3 font-semibold text-white"
-            >
+            <button onClick={handleCreateEmployee} className="mt-6 rounded-2xl bg-green-600 px-6 py-3 font-semibold text-white">
               Create Employee
             </button>
           </div>
@@ -604,6 +412,7 @@ function App() {
                     <th className="p-4 text-left">Role</th>
                     <th className="p-4 text-left">Status</th>
                     <th className="p-4 text-left">Actions</th>
+                    <th className="p-4 text-left">Reset Password</th>
                   </tr>
                 </thead>
 
@@ -614,56 +423,50 @@ function App() {
                       <td className="p-4">{emp.full_name}</td>
                       <td className="p-4">{emp.email}</td>
                       <td className="p-4">{emp.role}</td>
-
                       <td className="p-4">
-                        <span
-                          className={`rounded-xl px-3 py-1 text-white ${
-                            emp.status === "inactive"
-                              ? "bg-red-600"
-                              : "bg-green-600"
-                          }`}
-                        >
+                        <span className={`rounded-xl px-3 py-1 text-white ${emp.status === "inactive" ? "bg-red-600" : "bg-green-600"}`}>
                           {emp.status || "active"}
                         </span>
                       </td>
-
                       <td className="p-4">
                         {emp.status === "inactive" ? (
-                          <button
-                            onClick={() => handleReactivateEmployee(emp.id)}
-                            className="rounded-xl bg-green-600 px-4 py-2 text-white"
-                          >
+                          <button onClick={() => handleReactivateEmployee(emp.id)} className="rounded-xl bg-green-600 px-4 py-2 text-white">
                             Reactivate
                           </button>
                         ) : (
-                          <button
-                            onClick={() => handleDeactivateEmployee(emp.id)}
-                            className="rounded-xl bg-red-600 px-4 py-2 text-white"
-                          >
+                          <button onClick={() => handleDeactivateEmployee(emp.id)} className="rounded-xl bg-red-600 px-4 py-2 text-white">
                             Deactivate
                           </button>
                         )}
                       </td>
-                    </tr>
-                  ))}
-
-                  {employees.length === 0 && (
-                    <tr>
-                      <td colSpan="6" className="p-4 text-center text-slate-500">
-                        No employees found.
+                      <td className="p-4">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="New password"
+                            className="rounded-xl border border-slate-300 p-2"
+                            value={resetPasswords[emp.id] || ""}
+                            onChange={(e) =>
+                              setResetPasswords({
+                                ...resetPasswords,
+                                [emp.id]: e.target.value,
+                              })
+                            }
+                          />
+                          <button onClick={() => handleResetPassword(emp.id)} className="rounded-xl bg-blue-600 px-4 py-2 text-white">
+                            Save
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Timesheet Management
-            </h2>
-
+            <h2 className="text-3xl font-bold text-slate-900">Timesheet Management</h2>
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -676,67 +479,29 @@ function App() {
                     <th className="p-4 text-left">Actions</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {timesheets.map((sheet) => (
                     <tr key={sheet.id} className="border-b">
                       <td className="p-4">{sheet.employee_id}</td>
-                      <td className="p-4">
-                        {new Date(sheet.week_start).toLocaleDateString()}
-                      </td>
-                      <td className="p-4">
-                        {new Date(sheet.week_end).toLocaleDateString()}
-                      </td>
+                      <td className="p-4">{new Date(sheet.week_start).toLocaleDateString()}</td>
+                      <td className="p-4">{new Date(sheet.week_end).toLocaleDateString()}</td>
                       <td className="p-4">{sheet.total_hours}</td>
-                      <td className="p-4">
-                        <span
-                          className={`rounded-xl px-3 py-1 text-white ${
-                            sheet.status === "approved"
-                              ? "bg-green-600"
-                              : sheet.status === "rejected"
-                              ? "bg-red-600"
-                              : "bg-yellow-500"
-                          }`}
-                        >
-                          {sheet.status}
-                        </span>
-                      </td>
+                      <td className="p-4">{sheet.status}</td>
                       <td className="p-4">
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleApproveTimesheet(sheet.id)}
-                            className="rounded-xl bg-green-600 px-4 py-2 text-white"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleRejectTimesheet(sheet.id)}
-                            className="rounded-xl bg-red-600 px-4 py-2 text-white"
-                          >
-                            Reject
-                          </button>
+                          <button onClick={() => handleApproveTimesheet(sheet.id)} className="rounded-xl bg-green-600 px-4 py-2 text-white">Approve</button>
+                          <button onClick={() => handleRejectTimesheet(sheet.id)} className="rounded-xl bg-red-600 px-4 py-2 text-white">Reject</button>
                         </div>
                       </td>
                     </tr>
                   ))}
-
-                  {timesheets.length === 0 && (
-                    <tr>
-                      <td colSpan="6" className="p-4 text-center text-slate-500">
-                        No timesheets found.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              All Clock Records
-            </h2>
-
+            <h2 className="text-3xl font-bold text-slate-900">All Clock Records</h2>
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -747,36 +512,15 @@ function App() {
                     <th className="p-4 text-left">Total Hours</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {clockRecords.map((record) => (
                     <tr key={record.id} className="border-b">
                       <td className="p-4">{record.employee_id}</td>
-                      <td className="p-4">
-                        {record.clock_in
-                          ? new Date(record.clock_in).toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="p-4">
-                        {record.clock_out
-                          ? new Date(record.clock_out).toLocaleString()
-                          : "Still Clocked In"}
-                      </td>
-                      <td className="p-4">
-                        {record.total_hours
-                          ? Number(record.total_hours).toFixed(2)
-                          : "-"}
-                      </td>
+                      <td className="p-4">{record.clock_in ? new Date(record.clock_in).toLocaleString() : "-"}</td>
+                      <td className="p-4">{record.clock_out ? new Date(record.clock_out).toLocaleString() : "Still Clocked In"}</td>
+                      <td className="p-4">{record.total_hours ? Number(record.total_hours).toFixed(2) : "-"}</td>
                     </tr>
                   ))}
-
-                  {clockRecords.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="p-4 text-center text-slate-500">
-                        No clock records found.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
