@@ -3,11 +3,48 @@ const pool = require("../db/db");
 
 const router = express.Router();
 
+router.post("/calculate-hours", async (req, res) => {
+  try {
+    const { employee_id, week_start, week_end } = req.body;
+
+    if (!employee_id || !week_start || !week_end) {
+      return res.status(400).json({
+        message: "Employee ID, week start, and week end are required",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT COALESCE(SUM(total_hours), 0) AS total_hours
+      FROM clock_records
+      WHERE employee_id = $1
+        AND clock_in::date >= $2::date
+        AND clock_in::date <= $3::date
+        AND clock_out IS NOT NULL
+      `,
+      [employee_id, week_start, week_end]
+    );
+
+    res.json({
+      message: "Hours calculated successfully",
+      employee_id,
+      week_start,
+      week_end,
+      total_hours: Number(result.rows[0].total_hours).toFixed(2),
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to calculate hours",
+      error: error.message,
+    });
+  }
+});
+
 router.post("/submit", async (req, res) => {
   try {
     const { employee_id, week_start, week_end, total_hours } = req.body;
 
-    if (!employee_id || !week_start || !week_end || !total_hours) {
+    if (!employee_id || !week_start || !week_end || total_hours === undefined) {
       return res.status(400).json({
         message: "Employee ID, week start, week end, and total hours are required",
       });
