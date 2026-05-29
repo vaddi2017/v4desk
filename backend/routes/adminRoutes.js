@@ -1,4 +1,5 @@
 const express = require("express");
+const bcrypt = require("bcryptjs");
 const pool = require("../db/db");
 
 const router = express.Router();
@@ -73,6 +74,41 @@ router.put("/employees/:id/reactivate", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to reactivate employee",
+      error: error.message,
+    });
+  }
+});
+
+router.put("/employees/:id/reset-password", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const result = await pool.query(
+      `
+      UPDATE employees
+      SET password = $1
+      WHERE id = $2
+      RETURNING id, employee_id, full_name, email, role, status
+      `,
+      [hashedPassword, id]
+    );
+
+    res.json({
+      message: "Employee password reset successfully",
+      employee: result.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to reset employee password",
       error: error.message,
     });
   }
