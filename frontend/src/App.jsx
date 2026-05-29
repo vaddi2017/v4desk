@@ -30,7 +30,7 @@ function App() {
 
   const [weekStart, setWeekStart] = useState("2026-05-25");
   const [weekEnd, setWeekEnd] = useState("2026-05-31");
-  const [totalHours, setTotalHours] = useState("40");
+  const [totalHours, setTotalHours] = useState("0");
 
   const [newEmployeeId, setNewEmployeeId] = useState("EMP-1003");
   const [newFullName, setNewFullName] = useState("");
@@ -41,77 +41,6 @@ function App() {
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editFullName, setEditFullName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-
-  const downloadCSV = (filename, rows) => {
-    if (!rows || rows.length === 0) {
-      setMessage("No data available to export");
-      return;
-    }
-
-    const headers = Object.keys(rows[0]);
-    const csvRows = [
-      headers.join(","),
-      ...rows.map((row) =>
-        headers
-          .map((header) => {
-            const value = row[header] ?? "";
-            return `"${String(value).replace(/"/g, '""')}"`;
-          })
-          .join(",")
-      ),
-    ];
-
-    const blob = new Blob([csvRows.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = filename;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  };
-
-  const exportEmployeesCSV = () => {
-    const rows = employees.map((emp) => ({
-      employee_id: emp.employee_id,
-      full_name: emp.full_name,
-      email: emp.email,
-      role: emp.role,
-      status: emp.status,
-      created_at: emp.created_at,
-    }));
-
-    downloadCSV("v4desk_employees.csv", rows);
-  };
-
-  const exportTimesheetsCSV = () => {
-    const rows = timesheets.map((sheet) => ({
-      employee_id: sheet.employee_id,
-      week_start: sheet.week_start,
-      week_end: sheet.week_end,
-      total_hours: sheet.total_hours,
-      status: sheet.status,
-      submitted_at: sheet.submitted_at,
-    }));
-
-    downloadCSV("v4desk_timesheets.csv", rows);
-  };
-
-  const exportClockRecordsCSV = () => {
-    const rows = clockRecords.map((record) => ({
-      employee_id: record.employee_id,
-      clock_in: record.clock_in,
-      clock_out: record.clock_out,
-      total_hours: record.total_hours,
-      created_at: record.created_at,
-    }));
-
-    downloadCSV("v4desk_clock_records.csv", rows);
-  };
 
   const fetchEmployees = async () => {
     const res = await fetch(`${API_URL}/api/admin/employees`);
@@ -201,6 +130,49 @@ function App() {
     }
   };
 
+  const handleCalculateHours = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/timesheets/calculate-hours`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employee_id: employee.employee_id,
+          week_start: weekStart,
+          week_end: weekEnd,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.message || "Failed to calculate hours");
+        return;
+      }
+
+      setTotalHours(data.total_hours);
+      setMessage(`Calculated hours: ${data.total_hours}`);
+    } catch {
+      setMessage("Backend connection failed");
+    }
+  };
+
+  const handleSubmitTimesheet = async () => {
+    const res = await fetch(`${API_URL}/api/timesheets/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employee_id: employee.employee_id,
+        week_start: weekStart,
+        week_end: weekEnd,
+        total_hours: totalHours,
+      }),
+    });
+
+    const data = await res.json();
+    setMessage(data.message);
+    fetchTimesheets();
+  };
+
   const handleCreateEmployee = async () => {
     const res = await fetch(`${API_URL}/api/auth/register-employee`, {
       method: "POST",
@@ -242,10 +214,7 @@ function App() {
     const res = await fetch(`${API_URL}/api/admin/employees/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        full_name: editFullName,
-        email: editEmail,
-      }),
+      body: JSON.stringify({ full_name: editFullName, email: editEmail }),
     });
 
     const data = await res.json();
@@ -261,7 +230,6 @@ function App() {
     const res = await fetch(`${API_URL}/api/admin/employees/${id}/deactivate`, {
       method: "PUT",
     });
-
     const data = await res.json();
     setMessage(data.message);
     fetchEmployees();
@@ -272,7 +240,6 @@ function App() {
     const res = await fetch(`${API_URL}/api/admin/employees/${id}/reactivate`, {
       method: "PUT",
     });
-
     const data = await res.json();
     setMessage(data.message);
     fetchEmployees();
@@ -325,23 +292,6 @@ function App() {
     fetchClockRecords();
   };
 
-  const handleSubmitTimesheet = async () => {
-    const res = await fetch(`${API_URL}/api/timesheets/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        employee_id: employee.employee_id,
-        week_start: weekStart,
-        week_end: weekEnd,
-        total_hours: totalHours,
-      }),
-    });
-
-    const data = await res.json();
-    setMessage(data.message);
-    fetchTimesheets();
-  };
-
   const handleApproveTimesheet = async (id) => {
     const res = await fetch(`${API_URL}/api/admin/timesheets/${id}/approve`, {
       method: "PUT",
@@ -373,6 +323,76 @@ function App() {
     setClockRecords([]);
     setTimesheets([]);
     setEditingEmployeeId(null);
+  };
+
+  const downloadCSV = (filename, rows) => {
+    if (!rows || rows.length === 0) {
+      setMessage("No data available to export");
+      return;
+    }
+
+    const headers = Object.keys(rows[0]);
+    const csvRows = [
+      headers.join(","),
+      ...rows.map((row) =>
+        headers
+          .map((header) => `"${String(row[header] ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ];
+
+    const blob = new Blob([csvRows.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportEmployeesCSV = () => {
+    downloadCSV(
+      "v4desk_employees.csv",
+      employees.map((emp) => ({
+        employee_id: emp.employee_id,
+        full_name: emp.full_name,
+        email: emp.email,
+        role: emp.role,
+        status: emp.status,
+        created_at: emp.created_at,
+      }))
+    );
+  };
+
+  const exportTimesheetsCSV = () => {
+    downloadCSV(
+      "v4desk_timesheets.csv",
+      timesheets.map((sheet) => ({
+        employee_id: sheet.employee_id,
+        week_start: sheet.week_start,
+        week_end: sheet.week_end,
+        total_hours: sheet.total_hours,
+        status: sheet.status,
+        admin_comment: sheet.admin_comment,
+        submitted_at: sheet.submitted_at,
+      }))
+    );
+  };
+
+  const exportClockRecordsCSV = () => {
+    downloadCSV(
+      "v4desk_clock_records.csv",
+      clockRecords.map((record) => ({
+        employee_id: record.employee_id,
+        clock_in: record.clock_in,
+        clock_out: record.clock_out,
+        total_hours: record.total_hours,
+        created_at: record.created_at,
+      }))
+    );
   };
 
   const filteredEmployeeClockRecords = employee
@@ -430,14 +450,12 @@ function App() {
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
               />
-
               <input
                 type="password"
                 className="w-full rounded-xl border border-slate-300 p-3"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-
               <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
                 Employee Login
               </button>
@@ -449,14 +467,12 @@ function App() {
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
               />
-
               <input
                 type="password"
                 className="w-full rounded-xl border border-slate-300 p-3"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
               />
-
               <button className="w-full rounded-xl bg-slate-900 p-3 font-semibold text-white">
                 Admin Login
               </button>
@@ -475,15 +491,8 @@ function App() {
             <h1 className="text-4xl font-bold text-slate-900">
               Employee Dashboard
             </h1>
-
-            <p className="mt-2 text-slate-600">
-              Welcome {employee.full_name}
-            </p>
-
-            <p className="text-slate-600">
-              Employee ID: {employee.employee_id}
-            </p>
-
+            <p className="mt-2 text-slate-600">Welcome {employee.full_name}</p>
+            <p className="text-slate-600">Employee ID: {employee.employee_id}</p>
             <p className="text-slate-600">Email: {employee.email}</p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -493,14 +502,12 @@ function App() {
               >
                 Clock In
               </button>
-
               <button
                 onClick={handleClockOut}
                 className="rounded-2xl bg-red-600 px-6 py-3 font-semibold text-white"
               >
                 Clock Out
               </button>
-
               <button
                 onClick={handleLogout}
                 className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white"
@@ -528,14 +535,12 @@ function App() {
                 value={weekStart}
                 onChange={(e) => setWeekStart(e.target.value)}
               />
-
               <input
                 type="date"
                 className="rounded-xl border border-slate-300 p-3"
                 value={weekEnd}
                 onChange={(e) => setWeekEnd(e.target.value)}
               />
-
               <input
                 type="number"
                 className="rounded-xl border border-slate-300 p-3"
@@ -544,18 +549,25 @@ function App() {
               />
             </div>
 
-            <button
-              onClick={handleSubmitTimesheet}
-              className="mt-6 rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white"
-            >
-              Submit Timesheet
-            </button>
+            <div className="mt-6 flex flex-wrap gap-4">
+              <button
+                onClick={handleCalculateHours}
+                className="rounded-2xl bg-purple-600 px-6 py-3 font-semibold text-white"
+              >
+                Calculate Hours
+              </button>
+
+              <button
+                onClick={handleSubmitTimesheet}
+                className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white"
+              >
+                Submit Timesheet
+              </button>
+            </div>
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              My Timesheets
-            </h2>
+            <h2 className="text-3xl font-bold text-slate-900">My Timesheets</h2>
 
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
@@ -565,9 +577,9 @@ function App() {
                     <th className="p-4 text-left">Week End</th>
                     <th className="p-4 text-left">Hours</th>
                     <th className="p-4 text-left">Status</th>
+                    <th className="p-4 text-left">Admin Comment</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredEmployeeTimesheets.map((sheet) => (
                     <tr key={sheet.id} className="border-b">
@@ -579,6 +591,7 @@ function App() {
                       </td>
                       <td className="p-4">{sheet.total_hours}</td>
                       <td className="p-4">{sheet.status}</td>
+                      <td className="p-4">{sheet.admin_comment || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -600,7 +613,6 @@ function App() {
                     <th className="p-4 text-left">Total Hours</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredEmployeeClockRecords.map((record) => (
                     <tr key={record.id} className="border-b">
@@ -632,11 +644,7 @@ function App() {
             <h1 className="text-4xl font-bold text-slate-900">
               Admin Dashboard
             </h1>
-
-            <p className="mt-2 text-slate-600">
-              Welcome {admin.admin_name}
-            </p>
-
+            <p className="mt-2 text-slate-600">Welcome {admin.admin_name}</p>
             <p className="text-slate-600">Email: {admin.email}</p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -646,28 +654,24 @@ function App() {
               >
                 Refresh Dashboard
               </button>
-
               <button
                 onClick={handleLogout}
                 className="rounded-2xl bg-slate-900 px-6 py-3 font-semibold text-white"
               >
                 Logout
               </button>
-
               <button
                 onClick={exportEmployeesCSV}
                 className="rounded-2xl bg-purple-600 px-6 py-3 font-semibold text-white"
               >
                 Export Employees
               </button>
-
               <button
                 onClick={exportTimesheetsCSV}
                 className="rounded-2xl bg-indigo-600 px-6 py-3 font-semibold text-white"
               >
                 Export Timesheets
               </button>
-
               <button
                 onClick={exportClockRecordsCSV}
                 className="rounded-2xl bg-cyan-600 px-6 py-3 font-semibold text-white"
@@ -693,9 +697,7 @@ function App() {
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Add Employee
-            </h2>
+            <h2 className="text-3xl font-bold text-slate-900">Add Employee</h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
               <input
@@ -704,21 +706,18 @@ function App() {
                 onChange={(e) => setNewEmployeeId(e.target.value)}
                 placeholder="Employee ID"
               />
-
               <input
                 className="rounded-xl border border-slate-300 p-3"
                 value={newFullName}
                 onChange={(e) => setNewFullName(e.target.value)}
                 placeholder="Full Name"
               />
-
               <input
                 className="rounded-xl border border-slate-300 p-3"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="Email"
               />
-
               <input
                 className="rounded-xl border border-slate-300 p-3"
                 value={newPassword}
@@ -757,7 +756,6 @@ function App() {
                   {employees.map((emp) => (
                     <tr key={emp.id} className="border-b">
                       <td className="p-4">{emp.employee_id}</td>
-
                       <td className="p-4">
                         {editingEmployeeId === emp.id ? (
                           <input
@@ -769,7 +767,6 @@ function App() {
                           emp.full_name
                         )}
                       </td>
-
                       <td className="p-4">
                         {editingEmployeeId === emp.id ? (
                           <input
@@ -781,9 +778,7 @@ function App() {
                           emp.email
                         )}
                       </td>
-
                       <td className="p-4">{emp.role}</td>
-
                       <td className="p-4">
                         <span
                           className={`rounded-xl px-3 py-1 text-white ${
@@ -795,7 +790,6 @@ function App() {
                           {emp.status || "active"}
                         </span>
                       </td>
-
                       <td className="p-4">
                         {editingEmployeeId === emp.id ? (
                           <div className="flex gap-2">
@@ -821,7 +815,6 @@ function App() {
                           </button>
                         )}
                       </td>
-
                       <td className="p-4">
                         {emp.status === "inactive" ? (
                           <button
@@ -839,7 +832,6 @@ function App() {
                           </button>
                         )}
                       </td>
-
                       <td className="p-4">
                         <div className="flex gap-2">
                           <input
@@ -883,6 +875,7 @@ function App() {
                     <th className="p-4 text-left">Week End</th>
                     <th className="p-4 text-left">Hours</th>
                     <th className="p-4 text-left">Status</th>
+                    <th className="p-4 text-left">Admin Comment</th>
                     <th className="p-4 text-left">Actions</th>
                   </tr>
                 </thead>
@@ -899,6 +892,7 @@ function App() {
                       </td>
                       <td className="p-4">{sheet.total_hours}</td>
                       <td className="p-4">{sheet.status}</td>
+                      <td className="p-4">{sheet.admin_comment || "-"}</td>
                       <td className="p-4">
                         <div className="flex gap-2">
                           <button
