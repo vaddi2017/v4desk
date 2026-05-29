@@ -4,32 +4,21 @@ const pool = require("../db/db");
 
 const router = express.Router();
 
-/*
-====================================
-DASHBOARD STATS
-====================================
-*/
-
 router.get("/dashboard-stats", async (req, res) => {
   try {
     const totalEmployees = await pool.query("SELECT COUNT(*) FROM employees");
-
     const activeEmployees = await pool.query(
       "SELECT COUNT(*) FROM employees WHERE status = 'active'"
     );
-
     const inactiveEmployees = await pool.query(
       "SELECT COUNT(*) FROM employees WHERE status = 'inactive'"
     );
-
     const pendingTimesheets = await pool.query(
       "SELECT COUNT(*) FROM timesheets WHERE status = 'submitted'"
     );
-
     const approvedTimesheets = await pool.query(
       "SELECT COUNT(*) FROM timesheets WHERE status = 'approved'"
     );
-
     const rejectedTimesheets = await pool.query(
       "SELECT COUNT(*) FROM timesheets WHERE status = 'rejected'"
     );
@@ -50,21 +39,13 @@ router.get("/dashboard-stats", async (req, res) => {
   }
 });
 
-/*
-====================================
-EMPLOYEES
-====================================
-*/
-
 router.get("/employees", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT id, employee_id, full_name, email, role, status, created_at FROM employees ORDER BY id DESC"
     );
 
-    res.json({
-      employees: result.rows,
-    });
+    res.json({ employees: result.rows });
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch employees",
@@ -194,21 +175,13 @@ router.put("/employees/:id/reset-password", async (req, res) => {
   }
 });
 
-/*
-====================================
-CLOCK RECORDS
-====================================
-*/
-
 router.get("/clock-records", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM clock_records ORDER BY created_at DESC"
     );
 
-    res.json({
-      records: result.rows,
-    });
+    res.json({ records: result.rows });
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch clock records",
@@ -217,21 +190,13 @@ router.get("/clock-records", async (req, res) => {
   }
 });
 
-/*
-====================================
-TIMESHEETS
-====================================
-*/
-
 router.get("/timesheets", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM timesheets ORDER BY submitted_at DESC"
     );
 
-    res.json({
-      timesheets: result.rows,
-    });
+    res.json({ timesheets: result.rows });
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch timesheets",
@@ -243,15 +208,17 @@ router.get("/timesheets", async (req, res) => {
 router.put("/timesheets/:id/approve", async (req, res) => {
   try {
     const { id } = req.params;
+    const { admin_comment } = req.body || {};
 
     const result = await pool.query(
       `
       UPDATE timesheets
-      SET status = 'approved'
-      WHERE id = $1
+      SET status = 'approved',
+          admin_comment = $1
+      WHERE id = $2
       RETURNING *
       `,
-      [id]
+      [admin_comment || "Approved", id]
     );
 
     res.json({
@@ -269,15 +236,17 @@ router.put("/timesheets/:id/approve", async (req, res) => {
 router.put("/timesheets/:id/reject", async (req, res) => {
   try {
     const { id } = req.params;
+    const { admin_comment } = req.body || {};
 
     const result = await pool.query(
       `
       UPDATE timesheets
-      SET status = 'rejected'
-      WHERE id = $1
+      SET status = 'rejected',
+          admin_comment = $1
+      WHERE id = $2
       RETURNING *
       `,
-      [id]
+      [admin_comment || "Rejected by admin", id]
     );
 
     res.json({
@@ -291,12 +260,6 @@ router.put("/timesheets/:id/reject", async (req, res) => {
     });
   }
 });
-
-/*
-====================================
-TEST ROUTE
-====================================
-*/
 
 router.get("/test", (req, res) => {
   res.json({
