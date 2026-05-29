@@ -143,6 +143,16 @@ function App() {
     fetchEmployees();
   };
 
+  const handleReactivateEmployee = async (id) => {
+    const res = await fetch(`${API_URL}/api/admin/employees/${id}/reactivate`, {
+      method: "PUT",
+    });
+
+    const data = await res.json();
+    setMessage(data.message);
+    fetchEmployees();
+  };
+
   const handleClockIn = async () => {
     const res = await fetch(`${API_URL}/api/clock/clock-in`, {
       method: "POST",
@@ -333,9 +343,7 @@ function App() {
             <h1 className="text-4xl font-bold text-slate-900">
               Employee Dashboard
             </h1>
-            <p className="mt-2 text-slate-600">
-              Welcome {employee.full_name}
-            </p>
+            <p className="mt-2 text-slate-600">Welcome {employee.full_name}</p>
             <p className="text-slate-600">Employee ID: {employee.employee_id}</p>
             <p className="text-slate-600">Email: {employee.email}</p>
 
@@ -415,9 +423,7 @@ function App() {
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              My Timesheets
-            </h2>
+            <h2 className="text-3xl font-bold text-slate-900">My Timesheets</h2>
 
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
@@ -510,9 +516,7 @@ function App() {
             <h1 className="text-4xl font-bold text-slate-900">
               Admin Dashboard
             </h1>
-            <p className="mt-2 text-slate-600">
-              Welcome {admin.admin_name}
-            </p>
+            <p className="mt-2 text-slate-600">Welcome {admin.admin_name}</p>
             <p className="text-slate-600">Email: {admin.email}</p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -539,9 +543,7 @@ function App() {
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Add Employee
-            </h2>
+            <h2 className="text-3xl font-bold text-slate-900">Add Employee</h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
               <div>
@@ -590,9 +592,7 @@ function App() {
           </div>
 
           <div className="mt-10 rounded-3xl bg-white p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Employees
-            </h2>
+            <h2 className="text-3xl font-bold text-slate-900">Employees</h2>
 
             <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse">
@@ -614,6 +614,7 @@ function App() {
                       <td className="p-4">{emp.full_name}</td>
                       <td className="p-4">{emp.email}</td>
                       <td className="p-4">{emp.role}</td>
+
                       <td className="p-4">
                         <span
                           className={`rounded-xl px-3 py-1 text-white ${
@@ -625,20 +626,23 @@ function App() {
                           {emp.status || "active"}
                         </span>
                       </td>
+
                       <td className="p-4">
-                        <button
-                          onClick={() => handleDeactivateEmployee(emp.id)}
-                          disabled={emp.status === "inactive"}
-                          className={`rounded-xl px-4 py-2 text-white ${
-                            emp.status === "inactive"
-                              ? "bg-slate-400"
-                              : "bg-red-600"
-                          }`}
-                        >
-                          {emp.status === "inactive"
-                            ? "Inactive"
-                            : "Deactivate"}
-                        </button>
+                        {emp.status === "inactive" ? (
+                          <button
+                            onClick={() => handleReactivateEmployee(emp.id)}
+                            className="rounded-xl bg-green-600 px-4 py-2 text-white"
+                          >
+                            Reactivate
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleDeactivateEmployee(emp.id)}
+                            className="rounded-xl bg-red-600 px-4 py-2 text-white"
+                          >
+                            Deactivate
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
