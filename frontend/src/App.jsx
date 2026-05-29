@@ -5,12 +5,12 @@ const API_URL = "https://v4desk-api.onrender.com";
 function App() {
   const [loginType, setLoginType] = useState("employee");
 
-  const [employeeId, setEmployeeId] = useState("EMP-1001");
-  const [password, setPassword] = useState("Test1234");
+  const [employeeId, setEmployeeId] = useState("");
+  const [password, setPassword] = useState("");
   const [employee, setEmployee] = useState(null);
 
-  const [adminEmail, setAdminEmail] = useState("admin@v4desk.com");
-  const [adminPassword, setAdminPassword] = useState("Admin1234");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [admin, setAdmin] = useState(null);
 
   const [message, setMessage] = useState("");
@@ -444,14 +444,18 @@ function App() {
           </div>
 
           {loginType === "employee" ? (
-            <form onSubmit={handleEmployeeLogin} className="mt-8 space-y-5">
+            <form onSubmit={handleEmployeeLogin} autoComplete="off" className="mt-8 space-y-5">
               <input
+                autoComplete="off"
+                placeholder="Employee ID"
                 className="w-full rounded-xl border border-slate-300 p-3"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
               />
               <input
                 type="password"
+                autoComplete="new-password"
+                placeholder="Password"
                 className="w-full rounded-xl border border-slate-300 p-3"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -461,14 +465,18 @@ function App() {
               </button>
             </form>
           ) : (
-            <form onSubmit={handleAdminLogin} className="mt-8 space-y-5">
+            <form onSubmit={handleAdminLogin} autoComplete="off" className="mt-8 space-y-5">
               <input
+                autoComplete="off"
+                placeholder="Admin Email"
                 className="w-full rounded-xl border border-slate-300 p-3"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
               />
               <input
                 type="password"
+                autoComplete="new-password"
+                placeholder="Password"
                 className="w-full rounded-xl border border-slate-300 p-3"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
